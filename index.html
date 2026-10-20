@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DzAI Voice Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#100d20;color:white;padding:22px}
+main{max-width:520px;margin:auto}
+h1{font-size:30px;color:#c5a8ff}
+p{color:#c7c1d8;line-height:1.6}
+.card{background:#211a38;padding:20px;border-radius:18px;margin:18px 0}
+button,select{width:100%;padding:14px;margin:7px 0;border:0;border-radius:12px;font-size:16px}
+button{background:#a783ff;color:#160d28;font-weight:bold}
+button:disabled{opacity:.4}
+select{background:#34294f;color:white}
+#status{white-space:pre-wrap;color:#c9b8ff}
+audio{width:100%;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>🎙️ DzAI Voice Studio</h1>
+<p>Record your voice and create your own voice studio.</p>
+
+<div class="card">
+<h3>1. Choose a voice style</h3>
+<select id="style">
+<option>Female Voice</option>
+<option>Male Voice</option>
+<option>Deep Voice</option>
+<option>Anime Voice</option>
+<option>Robot Voice</option>
+</select>
+<p id="note">Voice style selection is a preview feature.</p>
+</div>
+
+<div class="card">
+<h3>2. Record your voice</h3>
+<button id="start">🔴 Start Recording</button>
+<button id="stop" disabled>⏹ Stop Recording</button>
+<p id="status">Ready to record.</p>
+<audio id="player" controls hidden></audio>
+<button id="download" hidden>⬇ Download Audio</button>
+</div>
+
+<p>Next step: connect a real AI voice conversion model.</p>
+</main>
+<script>
+let recorder, chunks=[], audioURL;
+const start=document.getElementById('start');
+const stop=document.getElementById('stop');
+const status=document.getElementById('status');
+const player=document.getElementById('player');
+const download=document.getElementById('download');
+
+start.onclick=async()=>{
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    chunks=[];
+    recorder=new MediaRecorder(stream);
+    recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+    recorder.onstop=()=>{
+      const blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});
+      if(audioURL)URL.revokeObjectURL(audioURL);
+      audioURL=URL.createObjectURL(blob);
+      player.src=audioURL;
+      player.hidden=false;
+      download.hidden=false;
+      download.onclick=()=>{
+        const a=document.createElement('a');
+        a.href=audioURL;
+        a.download='my-voice.webm';
+        a.click();
+      };
+      stream.getTracks().forEach(t=>t.stop());
+      status.textContent='Recording complete! Play or download your audio.';
+    };
+    recorder.start();
+    start.disabled=true;
+    stop.disabled=false;
+    status.textContent='Recording... Speak now!';
+  }catch(e){
+    status.textContent='Microphone unavailable. Open this website over HTTPS and allow microphone access.';
+  }
+};
+stop.onclick=()=>{
+  if(recorder&&recorder.state!=='inactive'){
+    recorder.stop();
+    start.disabled=false;
+    stop.disabled=true;
+  }
+};
+document.getElementById('style').onchange=e=>{
+  document.getElementById('note').textContent=
+  e.target.value+' selected. Real AI conversion is not connected yet.';
+};
+</script>
+</body>
+</html>
